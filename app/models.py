@@ -32,15 +32,13 @@ def update_invoice(invoice_id,**kwargs):
 	con = sql.connect("database.db")
 	cursor = con.cursor()
 	update_string = ""
-	# for key in kwargs:
-	# 	if type(kwargs[key]) is StringType:
-	# 		update_string += "{} = \'{}\', ".format(key, kwargs[key])
-	# 	else:
-	# 		update_string += "{} = {}, ".format(key, kwargs[key])
 	for key in kwargs:
-		update_string += "{} = {}, ".format(key, kwargs[key])
+		if type(kwargs[key]) == str:
+			update_string += "{} = '{}', ".format(key, kwargs[key])
+		else:
+			update_string += "{} = {}, ".format(key, kwargs[key])
 	update_string = update_string[:-2]
-	print update_string
+	print(update_string)
 	cursor.execute("UPDATE invoices SET {} WHERE id = ?".format(update_string), (str(invoice_id)))
 	con.commit()
 	con.close()
