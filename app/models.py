@@ -7,7 +7,7 @@ def insert_invoice(ReferenceMonth, ReferenceYear, Document, Description, Amount,
 	con = sql.connect("database.db")
 	cursor = con.cursor()
 	cursor.execute("INSERT INTO invoices (ReferenceMonth, ReferenceYear, Document, Description, Amount, IsActive, CreatedAt, DeactiveAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		(ReferenceMonth, ReferenceYear, Document, Description, Amount, IsActive, CreatedAt, DeactiveAt))
+		(ReferenceMonth, ReferenceYear, Document, Description, Amount, IsActive, CreatedAt, DeactiveAt, ))
 	con.commit()
 	con.close()
 
@@ -16,16 +16,40 @@ def insert_invoice(ReferenceMonth, ReferenceYear, Document, Description, Amount,
 def select_invoices():
 	con = sql.connect("database.db")
 	cursor = con.cursor()
-	invoice_return = cursor.execute("SELECT * FROM invoices")
+	invoice_return = cursor.execute("SELECT * FROM invoices").fetchall()
 	con.close()
-	return invoice_return.fetchall()
+	return invoice_return
 
 def select_invoice(invoice_id):
 	con = sql.connect("database.db")
 	cursor = con.cursor()
-	invoice_return = cursor.execute("SELECT * FROM invoices WHERE id = ?", (invoice_id))
+	invoice_return = cursor.execute("SELECT * FROM invoices WHERE id = ?", (str(invoice_id), )).fetchall()
 	con.close()
-	return invoice_return.fetchall()
+	return invoice_return
 
-def update_invoice(id, ReferenceMonth, ReferenceYear, Document, Description, Amount, IsActive, CreatedAt, DeactiveAt):
-	
+def update_invoice(invoice_id,**kwargs):
+# ReferenceMonth, ReferenceYear, Document, Description, Amount, IsActive, CreatedAt, DeactiveAt):
+	con = sql.connect("database.db")
+	cursor = con.cursor()
+	update_string = ""
+	# for key in kwargs:
+	# 	if type(kwargs[key]) is StringType:
+	# 		update_string += "{} = \'{}\', ".format(key, kwargs[key])
+	# 	else:
+	# 		update_string += "{} = {}, ".format(key, kwargs[key])
+	for key in kwargs:
+		update_string += "{} = {}, ".format(key, kwargs[key])
+	update_string = update_string[:-2]
+	print update_string
+	cursor.execute("UPDATE invoices SET {} WHERE id = ?", (str(invoice_id)))
+	con.commit()
+	con.close()
+
+
+
+def delete_invoice(id):
+	con = sql.connect("database.db")
+	cursor = con.cursor()
+	cursor.execute("DELETE FROM invoices WHERE id = ?", (id))
+	con.commit()
+	con.close()
