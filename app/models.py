@@ -41,7 +41,7 @@ def update_invoice(invoice_id,**kwargs):
 		update_string += "{} = {}, ".format(key, kwargs[key])
 	update_string = update_string[:-2]
 	print update_string
-	cursor.execute("UPDATE invoices SET {} WHERE id = ?", (str(invoice_id)))
+	cursor.execute("UPDATE invoices SET {} WHERE id = ?".format(update_string), (str(invoice_id)))
 	con.commit()
 	con.close()
 
