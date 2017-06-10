@@ -1,9 +1,8 @@
 import sqlite3 as sql
 from datetime import datetime
 
-def insert_invoice(ReferenceMonth, ReferenceYear, Document, Description, Amount, IsActive, DeactiveAt = None):
-	agora = datetime.today()
-	CreatedAt = agora.isoformat()
+def insert_invoice(ReferenceMonth, ReferenceYear, Document, Description, Amount, IsActive, CreatedAt = datetime.today().isoformat(), DeactiveAt = None):
+	# Para o campo CreatedAt ser criado automaticamente, e não ter sido fornecido por 
 	con = sql.connect("app/database.db")
 	cursor = con.cursor()
 	cursor.execute("INSERT INTO invoices (ReferenceMonth, ReferenceYear, Document, Description, Amount, IsActive, CreatedAt, DeactiveAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -39,11 +38,14 @@ def update_invoice(invoice_id,**kwargs):
 			update_string += "{} = '{}', ".format(key, kwargs[key])
 		else:
 			update_string += "{} = {}, ".format(key, kwargs[key])
+
+	# retirando o ultimo ", " da update_string:
 	update_string = update_string[:-2]
-	print(update_string)
 	cursor.execute("UPDATE invoices SET {} WHERE id = ?".format(update_string), (str(invoice_id)))
 	con.commit()
+	updated = cursor.execute("SELECT * FROM invoices WHERE id = ?", (str(invoice_id))).fetchall()
 	con.close()
+	return updated
 
 
 
