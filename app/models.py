@@ -1,8 +1,28 @@
 import sqlite3 as sql
 from datetime import datetime
 
-def insert_invoice(ReferenceMonth, ReferenceYear, Document, Description, Amount, IsActive, CreatedAt = datetime.today().isoformat(), DeactiveAt = None):
-	# Para o campo CreatedAt ser criado automaticamente, e não ter sido fornecido por 
+
+#insert_invoice(5, 2017, "Outback", "ablablabl", 25.99, 2)
+
+def select_invoices():
+	con = sql.connect("app/database.db")
+	cursor = con.cursor()
+	invoice_return = cursor.execute("SELECT * FROM invoices WHERE IsActive = 1").fetchall()
+	con.close()
+	return invoice_return
+
+def select_invoice(invoice_id):
+	con = sql.connect("app/database.db")
+	cursor = con.cursor()
+	invoice_return = cursor.execute("SELECT * FROM invoices WHERE id = ? AND IsActive = 1", (str(invoice_id), )).fetchall()
+	con.close()
+	return invoice_return
+
+def insert_invoice(ReferenceMonth, ReferenceYear, Document, Description, Amount):
+	IsActive = 1
+	CreatedAt = datetime.today().isoformat()
+	DeactiveAt = None
+
 	con = sql.connect("app/database.db")
 	cursor = con.cursor()
 	cursor.execute("INSERT INTO invoices (ReferenceMonth, ReferenceYear, Document, Description, Amount, IsActive, CreatedAt, DeactiveAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -11,22 +31,6 @@ def insert_invoice(ReferenceMonth, ReferenceYear, Document, Description, Amount,
 	created = cursor.execute("SELECT * FROM invoices ORDER BY id DESC LIMIT 1").fetchall()
 	con.close()
 	return created
-
-#insert_invoice(5, 2017, "Outback", "ablablabl", 25.99, 2)
-
-def select_invoices():
-	con = sql.connect("app/database.db")
-	cursor = con.cursor()
-	invoice_return = cursor.execute("SELECT * FROM invoices").fetchall()
-	con.close()
-	return invoice_return
-
-def select_invoice(invoice_id):
-	con = sql.connect("app/database.db")
-	cursor = con.cursor()
-	invoice_return = cursor.execute("SELECT * FROM invoices WHERE id = ?", (str(invoice_id), )).fetchall()
-	con.close()
-	return invoice_return
 
 def update_invoice(invoice_id,**kwargs):
 # ReferenceMonth, ReferenceYear, Document, Description, Amount, IsActive, CreatedAt, DeactiveAt):
@@ -41,17 +45,22 @@ def update_invoice(invoice_id,**kwargs):
 
 	# retirando o ultimo ", " da update_string:
 	update_string = update_string[:-2]
-	cursor.execute("UPDATE invoices SET {} WHERE id = ?".format(update_string), (str(invoice_id)))
+	cursor.execute("UPDATE invoices SET {} WHERE id = ? AND IsActive = 1".format(update_string), (str(invoice_id)))
 	con.commit()
-	updated = cursor.execute("SELECT * FROM invoices WHERE id = ?", (str(invoice_id))).fetchall()
+	updated = cursor.execute("SELECT * FROM invoices WHERE id = ? AND IsActive = 1", (str(invoice_id))).fetchall()
 	con.close()
 	return updated
 
 
 
 def delete_invoice(id):
+	DeactiveAt = datetime.today().isoformat()
 	con = sql.connect("app/database.db")
 	cursor = con.cursor()
-	cursor.execute("DELETE FROM invoices WHERE id = ?", (id, ))
+	target = cursor.execute("SELECT * FROM invoices WHERE id = ? AND IsActive = 1", (str(id))).fetchall()
+	if len(target) == 0:
+		return 0
+	cursor.execute("UPDATE invoices SET IsActive = 0, DeactiveAt = ?  WHERE id = ? AND IsActive = 1", (DeactiveAt, id, ))
 	con.commit()
 	con.close()
+	return 1
