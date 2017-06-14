@@ -4,12 +4,21 @@ from datetime import datetime
 
 #insert_invoice(5, 2017, "Outback", "ablablabl", 25.99, 2)
 
-def select_invoices():
+def select_invoices(year, month, doc):
+	query_str = ""
+	if year != None:
+		query_str = query_str + " AND ReferenceYear = " + str(year)
+	if month != None:
+		query_str = query_str + " AND ReferenceMonth = " + str(month)
+	if doc != None:
+		query_str = query_str + " AND Document = '" + doc + "'"
+
 	con = sql.connect("app/database.db")
 	cursor = con.cursor()
-	invoice_return = cursor.execute("SELECT * FROM invoices WHERE IsActive = 1").fetchall()
+	invoices = cursor.execute("SELECT * FROM invoices WHERE IsActive = 1 {}".format(query_str))
+	invoices_return = invoices.fetchall()
 	con.close()
-	return invoice_return
+	return invoices_return
 
 def select_invoice(invoice_id):
 	con = sql.connect("app/database.db")

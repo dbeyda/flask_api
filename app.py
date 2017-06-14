@@ -10,8 +10,13 @@ field_list = ['ReferenceMonth', 'ReferenceYear', 'Document', 'Description', 'Amo
 #GET ALL
 @app.route('/nf/api/v1.0/invoices', methods=['GET'])
 def get_invoices():
-	invoices = models.select_invoices()
+	year = request.args.get("ReferenceYear")
+	month = request.args.get("ReferenceMonth")
+	doc = request.args.get("Document")
+	invoices = models.select_invoices(year, month, doc)
 	invoices = fetch_dict(invoices)
+	if len(invoices) == 0:
+		abort(404)
 	return jsonify({'invoices': [invoice_uri(invoice) for invoice in invoices]})
 
 #GET ID
