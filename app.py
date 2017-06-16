@@ -9,15 +9,38 @@ field_list = ['ReferenceMonth', 'ReferenceYear', 'Document', 'Description', 'Amo
 
 #GET ALL
 @app.route('/nf/api/v1.0/invoices', methods=['GET'])
-def get_invoices():
+@app.route('/nf/api/v1.0/invoices/index', methods=['GET'])
+@app.route('/nf/api/v1.0/invoices/index/', methods=['GET'])
+@app.route('/nf/api/v1.0/invoices/index/<int:page>', methods=['GET'])
+def get_invoices(page = 1):
+	INVOICES_PER_PAGE = 5
 	year = request.args.get("ReferenceYear")
 	month = request.args.get("ReferenceMonth")
 	doc = request.args.get("Document")
-	invoices = models.select_invoices(year, month, doc)
+	invoices = models.select_invoices(year, month, doc, page, INVOICES_PER_PAGE)
 	invoices = fetch_dict(invoices)
 	if len(invoices) == 0:
 		abort(404)
-	return jsonify({'invoices': [invoice_uri(invoice) for invoice in invoices]})
+	#pagination:
+	if page == 1:
+		prev_url = None
+	else:
+		prev_url = url_for('get_invoices', page = page - 1, _external = True)
+
+	if len(invoices) < INVOICES_PER_PAGE:
+		next_url = None
+	elif len(invoices) == INVOICES_PER_PAGE:
+		if invoices[-1]['id'] == models.last_invoice_id(year, month, doc):
+			next_url = None
+		else:
+			next_url = url_for('get_invoices', page = page + 1, _external = True)
+
+	invoices = {
+	'prev': prev_url,
+	'invoices': [invoice_uri(invoice) for invoice in invoices],
+	'next': next_url
+	}
+	return jsonify(invoices)
 
 #GET ID
 @app.route('/nf/api/v1.0/invoices/<int:invoice_id>', methods=['GET'])
@@ -56,7 +79,6 @@ def update_invoice(invoice_id):
 		abort(400)
 	valida_campos(request.json)
 	
-
 	updated_invoice = fetch_dict(models.update_invoice(invoice_id, **request.json))
 	if len(updated_invoice) == 0:
 		abort(404)
