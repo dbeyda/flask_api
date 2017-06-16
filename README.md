@@ -15,3 +15,5 @@ Running
 
 To run the application in the development web server just execute `run.py` with the Python interpreter from the flask virtual environment.
 
+
+http://127.0.0.1:5000/nf/api/v1.0/invoices/index?Document=Samsung+Monitor+LCD

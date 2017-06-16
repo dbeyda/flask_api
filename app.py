@@ -14,26 +14,34 @@ field_list = ['ReferenceMonth', 'ReferenceYear', 'Document', 'Description', 'Amo
 @app.route('/nf/api/v1.0/invoices/index/<int:page>', methods=['GET'])
 def get_invoices(page = 1):
 	INVOICES_PER_PAGE = 5
+	#orderby:
+	orderby1 = request.args.get("OrderBy1")
+	orderby2 = request.args.get("OrderBy2")
+	orderby3 = request.args.get("OrderBy3")
+	#filters:
 	year = request.args.get("ReferenceYear")
 	month = request.args.get("ReferenceMonth")
 	doc = request.args.get("Document")
-	invoices = models.select_invoices(year, month, doc, page, INVOICES_PER_PAGE)
+	#get invoices:
+	invoices = models.select_invoices(year, month, doc, orderby1, orderby2, orderby3, page, INVOICES_PER_PAGE)
 	invoices = fetch_dict(invoices)
 	if len(invoices) == 0:
 		abort(404)
+
 	#pagination:
+	params_url = build_params_url(year, month, doc, orderby1, orderby2, orderby3)
 	if page == 1:
 		prev_url = None
 	else:
-		prev_url = url_for('get_invoices', page = page - 1, _external = True)
+		prev_url = url_for('get_invoices', page = page - 1, _external = True) + params_url
 
 	if len(invoices) < INVOICES_PER_PAGE:
 		next_url = None
 	elif len(invoices) == INVOICES_PER_PAGE:
-		if invoices[-1]['id'] == models.last_invoice_id(year, month, doc):
+		if invoices[-1]['id'] == models.last_invoice_id(year, month, doc, orderby1, orderby2, orderby3):
 			next_url = None
 		else:
-			next_url = url_for('get_invoices', page = page + 1, _external = True)
+			next_url = url_for('get_invoices', page = page + 1, _external = True) + params_url
 
 	invoices = {
 	'prev': prev_url,
@@ -141,6 +149,21 @@ def valida_campos(invoice):
 	if 'Amount' in invoice and type(invoice['Amount']) != float:
 		abort(400)
 
+def build_params_url(year, month, doc, orderby1, orderby2, orderby3):
+	params_url = "?"
+	if year != None:
+		params_url += "ReferenceYear={}&".format(year)
+	if month != None:
+		params_url += "ReferenceMonth={}&".format(month)
+	if doc != None:
+		params_url += "Document={}&".format(doc)
+	if orderby1 != None:
+		params_url += "OrderBy1={}&".format(orderby1.replace(" ", ""))
+	if orderby2 != None:
+		params_url += "OrderBy2={}&".format(orderby2.replace(" ", ""))
+	if orderby3 != None:
+		params_url += "OrderBy3={}&".format(orderby3.replace(" ", ""))
+	return params_url[:-1]
 
 
 if __name__ == '__main__':
