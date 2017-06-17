@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, abort, make_response, request, url_for
 from datetime import datetime
 import app.models as models
+from string import ascii_letters
 
 app = Flask(__name__)
 
@@ -9,11 +10,21 @@ field_list = ['ReferenceMonth', 'ReferenceYear', 'Document', 'Description', 'Amo
 
 #GET ALL
 @app.route('/nf/api/v1.0/invoices', methods=['GET'])
-@app.route('/nf/api/v1.0/invoices/index', methods=['GET'])
-@app.route('/nf/api/v1.0/invoices/index/', methods=['GET'])
-@app.route('/nf/api/v1.0/invoices/index/<int:page>', methods=['GET'])
-def get_invoices(page = 1):
-	INVOICES_PER_PAGE = 5
+def get_invoices():
+	invoices_per_page = request.args.get("per-page")
+	if (invoices_per_page is None):
+		invoices_per_page = 5
+	elif not invoices_per_page.isdigit():
+		abort(400)
+	invoices_per_page = int(invoices_per_page)
+
+	page = request.args.get("page")
+	if page is None:
+		page = 1
+	elif not page.isdigit():
+		abort(400)
+	page = int(page)
+
 	#orderby:
 	orderby1 = request.args.get("OrderBy1")
 	orderby2 = request.args.get("OrderBy2")
@@ -23,25 +34,25 @@ def get_invoices(page = 1):
 	month = request.args.get("ReferenceMonth")
 	doc = request.args.get("Document")
 	#get invoices:
-	invoices = models.select_invoices(year, month, doc, orderby1, orderby2, orderby3, page, INVOICES_PER_PAGE)
+	invoices = models.select_invoices(year, month, doc, orderby1, orderby2, orderby3, page, invoices_per_page)
 	invoices = fetch_dict(invoices)
 	if len(invoices) == 0:
 		abort(404)
 
 	#pagination:
-	params_url = build_params_url(year, month, doc, orderby1, orderby2, orderby3)
+	params_url = build_params_url(year, month, doc, orderby1, orderby2, orderby3, invoices_per_page)
 	if page == 1:
 		prev_url = None
 	else:
-		prev_url = url_for('get_invoices', page = page - 1, _external = True) + params_url
+		prev_url = url_for('get_invoices', _external = True) + "?page=" + str(page-1) + params_url
 
-	if len(invoices) < INVOICES_PER_PAGE:
+	if len(invoices) < invoices_per_page:
 		next_url = None
-	elif len(invoices) == INVOICES_PER_PAGE:
+	elif len(invoices) == invoices_per_page:
 		if invoices[-1]['id'] == models.last_invoice_id(year, month, doc, orderby1, orderby2, orderby3):
 			next_url = None
 		else:
-			next_url = url_for('get_invoices', page = page + 1, _external = True) + params_url
+			next_url = url_for('get_invoices', _external = True) + "?page=" + str(page+1) + params_url
 
 	invoices = {
 	'prev': prev_url,
@@ -149,19 +160,19 @@ def valida_campos(invoice):
 	if 'Amount' in invoice and type(invoice['Amount']) != float:
 		abort(400)
 
-def build_params_url(year, month, doc, orderby1, orderby2, orderby3):
-	params_url = "?"
-	if year != None:
+def build_params_url(year, month, doc, orderby1, orderby2, orderby3, per_page):
+	params_url = "&per-page={}&".format(per_page)
+	if year is not None:
 		params_url += "ReferenceYear={}&".format(year)
-	if month != None:
+	if month is not None:
 		params_url += "ReferenceMonth={}&".format(month)
-	if doc != None:
+	if doc is not None:
 		params_url += "Document={}&".format(doc)
-	if orderby1 != None:
+	if orderby1 is not None:
 		params_url += "OrderBy1={}&".format(orderby1.replace(" ", ""))
-	if orderby2 != None:
+	if orderby2 is not None:
 		params_url += "OrderBy2={}&".format(orderby2.replace(" ", ""))
-	if orderby3 != None:
+	if orderby3 is not None:
 		params_url += "OrderBy3={}&".format(orderby3.replace(" ", ""))
 	return params_url[:-1]
 
