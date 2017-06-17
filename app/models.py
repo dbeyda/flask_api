@@ -3,15 +3,15 @@ from datetime import datetime
 from flask import abort
 
 
-def select_invoices(year, month, doc, orderby1, orderby2, orderby3, page, INVOICES_PER_PAGE):
+def select_invoices(year, month, doc, sort, page, INVOICES_PER_PAGE):
 	filter_str = build_filter_str(year, month, doc)
 	pagination_str = build_pagination_str(page, INVOICES_PER_PAGE)
-	orderby_str = build_orderby_str(orderby1, orderby2, orderby3)
+	sort_str = build_sort_str(sort)
 	query_str = ""
 	if len(filter_str) > 0:
 		query_str += "{} ".format(filter_str)
-	if len(orderby_str) > 0:
-		query_str += "{} ".format(orderby_str)
+	if len(sort_str) > 0:
+		query_str += "{} ".format(sort_str)
 	if len(pagination_str) > 0:
 		query_str += "{} ".format(pagination_str)
 
@@ -22,15 +22,15 @@ def select_invoices(year, month, doc, orderby1, orderby2, orderby3, page, INVOIC
 	con.close()
 	return invoices_return
 
-def last_invoice_id(year, month, doc, orderby1, orderby2, orderby3):
+def last_invoice_id(year, month, doc, sort):
 	# Retorna o ID do ultimo registro da ultima pagina de uma query.
 	filter_str = build_filter_str(year, month, doc)
-	orderby_str = build_orderby_str(orderby1, orderby2, orderby3)
+	sort_str = build_sort_str(sort)
 	query_str = ""
 	if len(filter_str) > 0:
 		query_str += "{} ".format(filter_str)
-	if len(orderby_str) > 0:
-		query_str += "{} ".format(orderby_str)
+	if len(sort_str) > 0:
+		query_str += "{} ".format(sort_str)
 	con = sql.connect("app/database.db")
 	cursor = con.cursor()
 	last_id = cursor.execute("SELECT id FROM invoices WHERE IsActive = 1 {}".format(query_str)).fetchall()
@@ -90,6 +90,9 @@ def delete_invoice(id):
 	con.close()
 	return 1
 
+
+########## Auxiliary functions #############
+
 def build_filter_str(year, month, doc):
 	filter_str = ""
 	if year != None:
@@ -106,37 +109,42 @@ def build_pagination_str(page, INVOICES_PER_PAGE):
 	pagination_str = "LIMIT {} OFFSET {}".format(limit, offset)
 	return pagination_str
 
-def build_orderby_str(orderby1, orderby2, orderby3):
-	orderby_str = ""
-	if orderby1 != None:
-		orderby1 = split_orderby(orderby1)
-		if len(orderby_str)>0:
-			orderby_str += ', '
-		orderby_str +=  orderby1[0] + " " + orderby1[1]
-	if orderby2 != None:
-		orderby2 = split_orderby(orderby2)
-		if len(orderby_str)>0:
-			orderby_str += ', '
-		orderby_str +=  orderby2[0] + " " + orderby2[1]
-	if orderby3 != None:
-		orderby3 = split_orderby(orderby3)
-		if len(orderby_str)>0:
-			orderby_str += ', '
-		orderby_str +=  orderby3[0] + " " + orderby3[1]
-	
-	if len(orderby_str) > 0:
-		orderby_str = 'ORDER BY ' + orderby_str
-	return orderby_str
+def build_sort_str(sort):
+	if sort is None:
+		return ""
+	sort_str = "ORDER BY "
+	sort_dict = split_sort(sort)
+	for param in sort_dict:
+		sort_str += "{} {}, ".format(param, sort_dict[param])
+	print(sort_str[:-2])
+	return sort_str[:-2]
 
-def split_orderby(orderby):
-	if (orderby.count('(')!=1) or (orderby.count(')')!=1) or (orderby.count(',')!=1):
-		abort(400)
-	orderby = orderby.replace(" ", "")
-	orderby = orderby.split(',')
-	orderby[0] = orderby[0][1:]
-	orderby[1] = orderby[1][:-1]
-	if orderby[0] not in ["ReferenceMonth", "ReferenceYear", "Document"]:
-		abort(400)
-	if orderby[1] not in ["ASC", "DESC"]:
-		abort(400)
-	return orderby
+def split_sort(sort):
+	#receives: the sorting parameter as a string (ex: 'referencemonth,-referenceyear')
+	# no signal means ascending order, '-' signal means descending order
+	#returns: a dictionary {'param1': <ASC or DESC>, 'param2': <ASC or DESC>}
+	# ASC for ascending order
+	# DESC for descending order
+
+	sort = sort.split(',')
+	print(sort)
+	sort_dict = {}
+	for param in sort:
+		if param[0] == '-':
+			sort_dict[param[1:]] = "DESC"
+		else:
+			sort_dict[param] = "ASC"
+	print(sort_dict)
+	sort_dict2 = {}
+	for param in sort_dict:
+		if param.lower() == "referencemonth":
+			sort_dict2["ReferenceMonth"] = sort_dict[param]
+		elif param.lower() == "referenceyear":
+			sort_dict2["ReferenceYear"] = sort_dict[param]
+		elif param.lower() == "document":
+			sort_dict2["Document"] = sort_dict[param]
+		else:
+			abort(400)
+	
+	print(sort_dict2)
+	return sort_dict2

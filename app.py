@@ -11,13 +11,19 @@ field_list = ['ReferenceMonth', 'ReferenceYear', 'Document', 'Description', 'Amo
 #GET ALL
 @app.route('/nf/api/v1.0/invoices', methods=['GET'])
 def get_invoices():
+	#getting page data:
+
+		#invoices_per_page:
 	invoices_per_page = request.args.get("per-page")
 	if (invoices_per_page is None):
 		invoices_per_page = 5
 	elif not invoices_per_page.isdigit():
 		abort(400)
+		#Limit for invoices_per_page:
 	invoices_per_page = int(invoices_per_page)
-
+	if invoices_per_page > 50:
+		invoices_per_page = 50
+		#page:
 	page = request.args.get("page")
 	if page is None:
 		page = 1
@@ -25,22 +31,24 @@ def get_invoices():
 		abort(400)
 	page = int(page)
 
-	#orderby:
-	orderby1 = request.args.get("OrderBy1")
-	orderby2 = request.args.get("OrderBy2")
-	orderby3 = request.args.get("OrderBy3")
+	#sorting:
+	sort = request.args.get("sort")
+	if sort is not None:
+		sort = sort.replace(" ", "")
+
 	#filters:
 	year = request.args.get("ReferenceYear")
 	month = request.args.get("ReferenceMonth")
 	doc = request.args.get("Document")
-	#get invoices:
-	invoices = models.select_invoices(year, month, doc, orderby1, orderby2, orderby3, page, invoices_per_page)
+
+	#getting invoices from database:
+	invoices = models.select_invoices(year, month, doc, sort, page, invoices_per_page)
 	invoices = fetch_dict(invoices)
 	if len(invoices) == 0:
 		abort(404)
 
-	#pagination:
-	params_url = build_params_url(year, month, doc, orderby1, orderby2, orderby3, invoices_per_page)
+	#building 'next' and 'prev' urls for pagination:
+	params_url = build_params_url(year, month, doc, sort, invoices_per_page)
 	if page == 1:
 		prev_url = None
 	else:
@@ -49,7 +57,7 @@ def get_invoices():
 	if len(invoices) < invoices_per_page:
 		next_url = None
 	elif len(invoices) == invoices_per_page:
-		if invoices[-1]['id'] == models.last_invoice_id(year, month, doc, orderby1, orderby2, orderby3):
+		if invoices[-1]['id'] == models.last_invoice_id(year, month, doc, sort):
 			next_url = None
 		else:
 			next_url = url_for('get_invoices', _external = True) + "?page=" + str(page+1) + params_url
@@ -160,7 +168,7 @@ def valida_campos(invoice):
 	if 'Amount' in invoice and type(invoice['Amount']) != float:
 		abort(400)
 
-def build_params_url(year, month, doc, orderby1, orderby2, orderby3, per_page):
+def build_params_url(year, month, doc, sort, per_page):
 	params_url = "&per-page={}&".format(per_page)
 	if year is not None:
 		params_url += "ReferenceYear={}&".format(year)
@@ -168,12 +176,8 @@ def build_params_url(year, month, doc, orderby1, orderby2, orderby3, per_page):
 		params_url += "ReferenceMonth={}&".format(month)
 	if doc is not None:
 		params_url += "Document={}&".format(doc)
-	if orderby1 is not None:
-		params_url += "OrderBy1={}&".format(orderby1.replace(" ", ""))
-	if orderby2 is not None:
-		params_url += "OrderBy2={}&".format(orderby2.replace(" ", ""))
-	if orderby3 is not None:
-		params_url += "OrderBy3={}&".format(orderby3.replace(" ", ""))
+	if sort is not None:
+		params_url += "sort={}&".format(sort)
 	return params_url[:-1]
 
 
