@@ -10,3 +10,11 @@ IsActive tinyint,
 CreatedAt datetime,
 DeactivatedAt datetime
 );
+
+drop table if exists tokens;
+CREATE TABLE tokens (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    User     TEXT,
+    Hash     TEXT,
+    IsActive INTEGER
+);

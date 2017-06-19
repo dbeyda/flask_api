@@ -3,11 +3,11 @@ import jwt
 from datetime import datetime, timedelta
 from passlib.hash import sha256_crypt
 from flask import abort
+import app.config as config
 
 
-secret = "\xba\x88\xc0/\xbf\xf1\xe6I\x98r\xee\x0f\xe8p\x97\xb3^z\xec\xfa\x06b\x8f\x19c+A&\x91N30;\xba\xac\
-xe3\xa9\x11mA\x90\x13\x98\x12}/&\x85:uG8"
-token_minutes = 5
+secret = config.SECRET_KEY
+token_minutes = config.TOKEN_MINUTES
 
 def generate_auth_token(user):
 	payload = {
@@ -16,7 +16,6 @@ def generate_auth_token(user):
             'user': user
         }
 	token = jwt.encode(payload, secret, algorithm = 'HS256')
-	print(token)
 	return token
 
 def register_user(user, password):
@@ -25,7 +24,6 @@ def register_user(user, password):
 	cursor = con.cursor()
 	checagem = cursor.execute("SELECT User FROM tokens WHERE IsActive = 1 AND User = ?", (user, )).fetchall()
 	if len(checagem) > 0:
-		print("Usuario ja existe.")
 		abort(400)
 	cursor.execute("INSERT INTO tokens (User, Hash, IsActive) VALUES (?, ?, ?)",
 		(user, hashed_pass, 1))

@@ -135,7 +135,6 @@ def create_invoice():
 	created_invoice = fetch_dict(models.insert_invoice(**request.json))
 	return jsonify({'invoice': invoice_uri(created_invoice[0])}), 201
 
-
 #UPDATE
 @app.route('/nf/api/v1.0/invoices/<int:invoice_id>', methods = ['PUT'])
 @token_auth.login_required
@@ -146,7 +145,6 @@ def update_invoice(invoice_id):
 	if len(updated_invoice) == 0:
 		abort(404)
 	return jsonify({'invoice': invoice_uri(updated_invoice[0])})
-
 
 #DELETE
 @app.route('/nf/api/v1.0/invoices/<int:invoice_id>', methods = ['DELETE'])
