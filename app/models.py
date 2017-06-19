@@ -83,11 +83,11 @@ def delete_invoice(id):
 	cursor = con.cursor()
 	target = cursor.execute("SELECT * FROM invoices WHERE id = ? AND IsActive = 1", (str(id),)).fetchall()
 	if len(target) == 0:
-		return 0
+		return False
 	cursor.execute("UPDATE invoices SET IsActive = 0, DeactiveAt = ?  WHERE id = ? AND IsActive = 1", (DeactiveAt, id, ))
 	con.commit()
 	con.close()
-	return 1
+	return True
 
 
 ########## Auxiliary functions #############

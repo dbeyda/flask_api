@@ -47,7 +47,9 @@ def register_new_user():
 @basic_auth.login_required
 def del_user():
 	user = request.authorization.username
-	return jsonify({'User': sec.delete_user(user), "result": True})
+	if sec.delete_user(user):
+		return jsonify({'User': user, "result": True})
+	abort(404)
 
 
 ########### INVOICES RELATED:

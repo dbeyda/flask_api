@@ -42,7 +42,6 @@ def get_user_hash(user):
 def delete_user(user):
 	con = sql.connect("app/database.db")
 	cursor = con.cursor()
-	updated_hash = ""
 	cursor.execute("UPDATE tokens SET IsActive = 0 WHERE User = ? AND IsActive = 1", (user,))
 	con.commit()
 	con.close()
