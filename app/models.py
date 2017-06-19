@@ -116,7 +116,6 @@ def build_sort_str(sort):
 	sort_dict = split_sort(sort)
 	for param in sort_dict:
 		sort_str += "{} {}, ".format(param, sort_dict[param])
-	print(sort_str[:-2])
 	return sort_str[:-2]
 
 def split_sort(sort):
@@ -127,14 +126,12 @@ def split_sort(sort):
 	# DESC for descending order
 
 	sort = sort.split(',')
-	print(sort)
 	sort_dict = {}
 	for param in sort:
 		if param[0] == '-':
 			sort_dict[param[1:]] = "DESC"
 		else:
 			sort_dict[param] = "ASC"
-	print(sort_dict)
 	sort_dict2 = {}
 	for param in sort_dict:
 		if param.lower() == "referencemonth":
@@ -145,6 +142,4 @@ def split_sort(sort):
 			sort_dict2["Document"] = sort_dict[param]
 		else:
 			abort(400)
-	
-	print(sort_dict2)
 	return sort_dict2

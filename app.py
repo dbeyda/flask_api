@@ -1,29 +1,56 @@
-from flask import Flask, jsonify, abort, make_response, request, url_for
+from flask import Flask, jsonify, abort, make_response, request, url_for, g
 from datetime import datetime
 import app.models as models
-from string import ascii_letters
+from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
+import app.security as sec
+import jwt
 
 app = Flask(__name__)
+basic_auth = HTTPBasicAuth()
+token_auth = HTTPTokenAuth('Bearer')
 
 field_list = ['ReferenceMonth', 'ReferenceYear', 'Document', 'Description', 'Amount', 'IsActive', 'CreatedAt', 'DeactiveAt']
 
 
+
+#SECURITY RELATED:
+@basic_auth.verify_password
+def get_password(user, password):
+	if user in sec.users and sec.users[user][1] == password:
+		return True
+	return abort(401)
+
+@token_auth.verify_token
+def verify_token(token):
+	try:
+		data = jwt.decode(token, sec.secret, algorithms=['HS256'])
+		return True
+	except:
+		abort(401)
+		return False
+
+@app.route('/nf/api/v1.0/get_token')
+@basic_auth.login_required
+def get_token():
+	return sec.generate_auth_token(request.authorization.username)
+
+
+
 #GET ALL
 @app.route('/nf/api/v1.0/invoices', methods=['GET'])
+@token_auth.login_required
 def get_invoices():
-	#getting page data:
-
-		#invoices_per_page:
+	#invoices_per_page:
 	invoices_per_page = request.args.get("per-page")
 	if (invoices_per_page is None):
 		invoices_per_page = 5
 	elif not invoices_per_page.isdigit():
 		abort(400)
-		#Limit for invoices_per_page:
+	#Limit for invoices_per_page:
 	invoices_per_page = int(invoices_per_page)
 	if invoices_per_page > 50:
 		invoices_per_page = 50
-		#page:
+	#page:
 	page = request.args.get("page")
 	if page is None:
 		page = 1
@@ -31,15 +58,15 @@ def get_invoices():
 		abort(400)
 	page = int(page)
 
-	#sorting:
+	#sort:
 	sort = request.args.get("sort")
 	if sort is not None:
 		sort = sort.replace(" ", "")
 
 	#filters:
-	year = request.args.get("ReferenceYear")
-	month = request.args.get("ReferenceMonth")
-	doc = request.args.get("Document")
+	year = request.args.get("referenceyear")
+	month = request.args.get("referencemonth")
+	doc = request.args.get("document")
 
 	#getting invoices from database:
 	invoices = models.select_invoices(year, month, doc, sort, page, invoices_per_page)
@@ -71,6 +98,7 @@ def get_invoices():
 
 #GET ID
 @app.route('/nf/api/v1.0/invoices/<int:invoice_id>', methods=['GET'])
+@token_auth.login_required
 def get_invoice(invoice_id):
 	invoice = models.select_invoice(invoice_id)
 	invoice = fetch_dict(invoice)
@@ -98,6 +126,7 @@ def create_invoice():
 
 #UPDATE
 @app.route('/nf/api/v1.0/invoices/<int:invoice_id>', methods = ['PUT'])
+@token_auth.login_required
 def update_invoice(invoice_id):
 	for field in ["CreatedAt", "DeactiveAt", "IsActive"]:
 		if field in request.json:
@@ -114,14 +143,12 @@ def update_invoice(invoice_id):
 
 #DELETE
 @app.route('/nf/api/v1.0/invoices/<int:invoice_id>', methods = ['DELETE'])
+@token_auth.login_required
 def delete_invoice(invoice_id):
 	if models.delete_invoice(invoice_id):
 		return jsonify({"result": True})
 	abort(404)
 
-
-
-#-----------FUNCOES AUXILIARES----------
 
 # quando ocorrer erros, retornar JSON em vez de somente HTTP:
 @app.errorhandler(404)
@@ -130,6 +157,12 @@ def not_found(error):
 @app.errorhandler(400)
 def bad_request(error):
 	return make_response(jsonify({'error': 'Bad Request'}), 400)
+@app.errorhandler(401)
+def unauthorized_access(error):
+	return make_response(jsonify({'error': 'Unauthorized Access'}), 401)
+
+
+#-----------FUNCOES AUXILIARES----------
 
 
 def fetch_dict(fetch):
@@ -154,7 +187,7 @@ def invoice_uri(invoice):
 	return nova_invoice
 
 def valida_campos(invoice):
-#valida se os valores fornecidos estao adequados aos tipos dos campos do banco de dados
+#valida se os valores fornecidos em um POST ou UPDATE estao adequados aos tipos dos campos do banco de dados
 	if not invoice:
 		abort (400)
 	if 'ReferenceMonth' in invoice and type(invoice['ReferenceMonth']) != int:
@@ -171,15 +204,14 @@ def valida_campos(invoice):
 def build_params_url(year, month, doc, sort, per_page):
 	params_url = "&per-page={}&".format(per_page)
 	if year is not None:
-		params_url += "ReferenceYear={}&".format(year)
+		params_url += "referenceyear={}&".format(year)
 	if month is not None:
-		params_url += "ReferenceMonth={}&".format(month)
+		params_url += "referencemonth={}&".format(month)
 	if doc is not None:
-		params_url += "Document={}&".format(doc)
+		params_url += "document={}&".format(doc)
 	if sort is not None:
 		params_url += "sort={}&".format(sort)
 	return params_url[:-1]
-
 
 if __name__ == '__main__':
     app.run(debug=True)
