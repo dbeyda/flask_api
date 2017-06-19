@@ -10,15 +10,15 @@ basic_auth = HTTPBasicAuth()
 token_auth = HTTPTokenAuth('Bearer')
 
 field_list = ['ReferenceMonth', 'ReferenceYear', 'Document', 'Description', 'Amount', 'IsActive', 'CreatedAt', 'DeactiveAt']
+private_field_list = ['IsActive', 'CreatedAt', 'DeactiveAt']
 
-
-
-#SECURITY RELATED:
+##########    USER AND SECURITY RELATED:
 @basic_auth.verify_password
-def get_password(user, password):
-	if user in sec.users and sec.users[user][1] == password:
+def verify_password(user, password):
+	user_hash = sec.get_user_hash(user)
+	if len(user_hash) > 0 and sec.verify_password(password, user_hash[0][0]):
 		return True
-	return abort(401)
+	return False
 
 @token_auth.verify_token
 def verify_token(token):
@@ -26,16 +26,31 @@ def verify_token(token):
 		data = jwt.decode(token, sec.secret, algorithms=['HS256'])
 		return True
 	except:
-		abort(401)
 		return False
 
-@app.route('/nf/api/v1.0/get_token')
+@app.route('/nf/api/v1.0/users/get_token')
 @basic_auth.login_required
 def get_token():
-	return sec.generate_auth_token(request.authorization.username)
+	token = sec.generate_auth_token(request.authorization.username).decode("UTF-8")
+	return jsonify({'Token': token})
+
+@app.route('/nf/api/v1.0/users/register')
+def register_new_user():
+	user = request.authorization.username
+	password = request.authorization.password
+	if (user is None) or (password is None):
+		abort(400)
+	if sec.register_user(user, password):
+		return jsonify({'User': user, 'Status': 'Created'}), 201
+
+@app.route('/nf/api/v1.0/users/delete')
+@basic_auth.login_required
+def del_user():
+	user = request.authorization.username
+	return jsonify({'User': sec.delete_user(user), "result": True})
 
 
-
+########### INVOICES RELATED:
 #GET ALL
 @app.route('/nf/api/v1.0/invoices', methods=['GET'])
 @token_auth.login_required
@@ -109,17 +124,12 @@ def get_invoice(invoice_id):
 #POST
 @app.route('/nf/api/v1.0/invoices', methods = ['POST'])
 def create_invoice():
-	# Conferindo os parametros obrigatorios:
+	# Checking for the obligatory parameters:
 	for field in field_list:
-		if (not field in request.json) and (field not in ["CreatedAt", "DeactiveAt", "IsActive"]):
+		if (not field in request.json) and (field not in private_field_list):
 			abort(400)
-	for field in ["CreatedAt", "DeactiveAt", "IsActive"]:
-		if field in request.json:
-			abort(400)
-	if not request.json:
+	if not valida_entrada(request.json):
 		abort(400)
-	valida_campos(request.json)
-
 	created_invoice = fetch_dict(models.insert_invoice(**request.json))
 	return jsonify({'invoice': invoice_uri(created_invoice[0])}), 201
 
@@ -128,18 +138,13 @@ def create_invoice():
 @app.route('/nf/api/v1.0/invoices/<int:invoice_id>', methods = ['PUT'])
 @token_auth.login_required
 def update_invoice(invoice_id):
-	for field in ["CreatedAt", "DeactiveAt", "IsActive"]:
-		if field in request.json:
-			abort(400)
-	if not request.json:
+	if not valida_entrada(request.json):
 		abort(400)
-	valida_campos(request.json)
-	
 	updated_invoice = fetch_dict(models.update_invoice(invoice_id, **request.json))
 	if len(updated_invoice) == 0:
 		abort(404)
 	return jsonify({'invoice': invoice_uri(updated_invoice[0])})
-	# return jsonify({"invoice": invoice_uri(invoice[0])})
+
 
 #DELETE
 @app.route('/nf/api/v1.0/invoices/<int:invoice_id>', methods = ['DELETE'])
@@ -149,8 +154,7 @@ def delete_invoice(invoice_id):
 		return jsonify({"result": True})
 	abort(404)
 
-
-# quando ocorrer erros, retornar JSON em vez de somente HTTP:
+# when errors occur, return JSON instead of only HTTP:
 @app.errorhandler(404)
 def not_found(error):
 	return make_response(jsonify({'error': 'Not found'}), 404)
@@ -162,11 +166,12 @@ def unauthorized_access(error):
 	return make_response(jsonify({'error': 'Unauthorized Access'}), 401)
 
 
-#-----------FUNCOES AUXILIARES----------
+#-----------AUXILIARY FUNCTIONS----------
 
 
 def fetch_dict(fetch):
-#popula uma lista de dicionários com o resulatdo de uma <query.fetchall()>
+	#Receives a tuple that is a result from a <databse-query.fetchall()>
+	#Returns a list of invoices, where each invoice is represented by a dictionary, with the field_list fields and also 'id' related to each invoice filled.
 	lista = [{}]
 	field_list_id = ['id'] + field_list
 	for row in range(len(fetch)):
@@ -177,7 +182,8 @@ def fetch_dict(fetch):
 
 
 def invoice_uri(invoice):
-#Retornar URI, no lugar do ID
+	#Receives an invoice in the format of a dictionary.
+	#Returns the same dictionary (invoice), changing the field 'id' for the field 'uri'
 	nova_invoice = {}
 	for campo in invoice:
 		if campo == 'id':
@@ -186,22 +192,31 @@ def invoice_uri(invoice):
 			nova_invoice[campo] = invoice[campo]
 	return nova_invoice
 
-def valida_campos(invoice):
-#valida se os valores fornecidos em um POST ou UPDATE estao adequados aos tipos dos campos do banco de dados
+def valida_entrada(invoice):
+	#Receives a dictionary with keys and values for the fields of a POST or UPDATE request.
+	#Returns True if all the fields and values are valid, False if any field is not valid.
 	if not invoice:
-		abort (400)
+		return False
+	#Search for fields that shouldn't be inputted by the user:
+	for field in private_field_list:
+		if field in invoice:
+			return False
+	#Validates the types of the values provided in each parameter:
 	if 'ReferenceMonth' in invoice and type(invoice['ReferenceMonth']) != int:
-		abort(400)
+		return False
 	if 'ReferenceYear' in invoice and type(invoice['ReferenceYear']) != int:
-		abort(400)
+		return False
 	if 'Description' in invoice and (type(invoice['Description']) != str or len(invoice['Description']) > 256):
-		abort(400)
+		return False
 	if 'Document' in invoice and (type(invoice['Document']) != str or len(invoice['Document']) > 14):
-		abort(400)
+		return False
 	if 'Amount' in invoice and type(invoice['Amount']) != float:
-		abort(400)
+		return False
+	return True
 
 def build_params_url(year, month, doc, sort, per_page):
+	#Receives parameters that are passed through URL.
+	#Returns a string containing those params in the format to be used in an URL.
 	params_url = "&per-page={}&".format(per_page)
 	if year is not None:
 		params_url += "referenceyear={}&".format(year)

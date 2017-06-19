@@ -4,9 +4,9 @@ from flask import abort
 
 
 def select_invoices(year, month, doc, sort, page, INVOICES_PER_PAGE):
-	filter_str = build_filter_str(year, month, doc)
-	pagination_str = build_pagination_str(page, INVOICES_PER_PAGE)
-	sort_str = build_sort_str(sort)
+	filter_str = build_filter_sql(year, month, doc)
+	pagination_str = build_pagination_sql(page, INVOICES_PER_PAGE)
+	sort_str = build_sort_sql(sort)
 	query_str = ""
 	if len(filter_str) > 0:
 		query_str += "{} ".format(filter_str)
@@ -23,9 +23,9 @@ def select_invoices(year, month, doc, sort, page, INVOICES_PER_PAGE):
 	return invoices_return
 
 def last_invoice_id(year, month, doc, sort):
-	# Retorna o ID do ultimo registro da ultima pagina de uma query.
-	filter_str = build_filter_str(year, month, doc)
-	sort_str = build_sort_str(sort)
+	#Returns the ID of the last registry of the last page of a query.
+	filter_str = build_filter_sql(year, month, doc)
+	sort_str = build_sort_sql(sort)
 	query_str = ""
 	if len(filter_str) > 0:
 		query_str += "{} ".format(filter_str)
@@ -59,7 +59,6 @@ def insert_invoice(ReferenceMonth, ReferenceYear, Document, Description, Amount)
 	return created
 
 def update_invoice(invoice_id,**kwargs):
-# ReferenceMonth, ReferenceYear, Document, Description, Amount, IsActive, CreatedAt, DeactiveAt):
 	con = sql.connect("app/database.db")
 	cursor = con.cursor()
 	update_string = ""
@@ -93,7 +92,9 @@ def delete_invoice(id):
 
 ########## Auxiliary functions #############
 
-def build_filter_str(year, month, doc):
+def build_filter_sql(year, month, doc):
+	#Receives filter parameters.
+	#Returns a string in the SQL format corresponding to the received parameters.
 	filter_str = ""
 	if year != None:
 		filter_str = filter_str + "AND ReferenceYear = {} ".format(str(year))
@@ -103,13 +104,17 @@ def build_filter_str(year, month, doc):
 		filter_str = filter_str + "AND Document = '{}' ".format(str(doc))
 	return filter_str[:-1]
 
-def build_pagination_str(page, INVOICES_PER_PAGE):
+def build_pagination_sql(page, INVOICES_PER_PAGE):
+	#Receives the pagination parameters
+	#Returns a string in the SQL format corresponding to the received parameters.
 	offset = (INVOICES_PER_PAGE * (page-1))
 	limit = INVOICES_PER_PAGE
 	pagination_str = "LIMIT {} OFFSET {}".format(limit, offset)
 	return pagination_str
 
-def build_sort_str(sort):
+def build_sort_sql(sort):
+	#Receives sorting parameters
+	#Returns a string in the SQL format corresponding to the received parameters.
 	if sort is None:
 		return ""
 	sort_str = "ORDER BY "
@@ -119,9 +124,9 @@ def build_sort_str(sort):
 	return sort_str[:-2]
 
 def split_sort(sort):
-	#receives: the sorting parameter as a string (ex: 'referencemonth,-referenceyear')
-	# no signal means ascending order, '-' signal means descending order
-	#returns: a dictionary {'param1': <ASC or DESC>, 'param2': <ASC or DESC>}
+	#Receives the sorting parameter as a string (ex: 'referencemonth,-referenceyear')
+	#No signal means ascending order, minus signal (-) means descending order
+	#Returns a dictionary {'param1': <ASC or DESC>, 'param2': <ASC or DESC>}
 	# ASC for ascending order
 	# DESC for descending order
 
