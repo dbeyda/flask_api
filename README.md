@@ -1,10 +1,10 @@
 API de Banco de Dados para Notas Fiscais (invoices)
 ===================================================
-feito como desafio de desenvolvimento da Stone Pagamentos
+Feito como desafio de desenvolvimento da Stone Pagamentos.
 
 Esse sistema consiste de uma API REST, escrita em Python, utilizando o framework Flask.
 O banco de dados utilizado foi SQLite3. Não foram usados ORMs.
-A aplicação gerencia invoices, que são enviados e recebidos em formato JSON, e funciona sob antenticação por Token.
+A aplicação gerencia invoices, que são enviados e recebidos em formato JSON, e funciona sob autenticação por Token.
 
 Modelo de invoice:
 ---------------------
@@ -80,7 +80,7 @@ Endpoints de gestão de invoices:
     "Amount": 75000,
     "CreatedAt": "2017-06-19T20:39:18.956574",
     "DeactiveAt": null,
-    "Description": "Carro para o estagiario",
+    "Description": "Carro para uso dos executivos",
     "Document": "Toyota Corolla",
     "IsActive": 1,
     "ReferenceMonth": 11,
