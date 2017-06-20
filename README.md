@@ -102,7 +102,7 @@ Endpoints de gestão de invoices:
 
    `'/nf/api/v1.0/invoices/<id>'`, `DELETE`
 
-   Executa a deleção lógica do invoice correspondente ao id fornecido. O invoice excluído é retornado pelo servidor. Caso ele não seja encontrado, ocorrerá `ERROR 404: Not Found`.
+   Executa a deleção lógica do invoice correspondente ao id fornecido. O campo IsActive é atualizado para 0, e o campo DeactiveAt é preenchido com a data da deleção. O invoice excluído é retornado pelo servidor. Caso ele não seja encontrado, ocorrerá `ERROR 404: Not Found`.
 + GET ALL:
 
    `'/nf/api/v1.0/invoices'`, `GET`
