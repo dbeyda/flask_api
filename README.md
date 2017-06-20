@@ -23,19 +23,19 @@ Os campos `'IsActive'`, `'CreatedAt'`, `'DeactiveAt'` não serão fornecidos nem
 
 Endpoints de gestão de usuários:
 -----------
-+ Adicionar novo usuário:
++ **Adicionar novo usuário**:
 
    `'/nf/api/v1.0/users/register'`
 
-   Registra um novo usuário. O novo usuário e senha devem ser fornecidos pelo método HTTP Basic Auth. Por meio do header `Authorization`, devem ser fornecidos o `username` e a `password` para o novo usuário. A senha é guardada em forma de *hash*. A função de *hash* utilizada gera um *salt* aleatório e retorna uma *hash*, que já inclui o *salt* também por ela gerado. Essa *hash* é guardada no banco de dados.
+   **Registra um novo usuário**. O novo usuário e senha devem ser fornecidos pelo método HTTP Basic Auth. Por meio do header `Authorization`, devem ser fornecidos o `username` e a `password` para o novo usuário. A senha é guardada em forma de *hash*. A função de *hash* utilizada gera um *salt* aleatório e retorna uma *hash*, que já inclui o *salt* também por ela gerado. Essa *hash* é guardada no banco de dados.
    
    Caso o usuário escolhido já exista, ou caso não sejam fornecidos usuário e senha, o sistema irá responder com `Error-400: Bad Request`.
    
-+ Gerar token:
++ **Gerar token**:
 
    `'/nf/api/v1.0/users/get_token'`
 
-   É utilizado para gerar uma *token*, quando o usuário já está cadastrado.
+   É utilizado para **gerar uma *token***, quando o usuário já está cadastrado.
    
    Devem ser enviados `username` e `password`por meio do header `Authorization`, pelo método HTTP Basic Auth. Caso haja falha na autenticação, será retornado `Error 400: Bad Request`.
    
@@ -47,23 +47,23 @@ Endpoints de gestão de usuários:
    ```
    O tempo de validade da *token* pode ser ajustado no arquivo `app/config.py`.
    
-+ Excluir usuário:
++ **Excluir usuário**:
 
    `'/nf/api/v1.0/users/delete'`
 
-   É utilizado para deletar um usuário. Basta que a autenticação por `username` e `password` seja completa da mesma forma dos passos anteriores, com HTTP Basic Auth, e caso esteja ativo no banco de dados, o usuário sofrerá uma deleção lógica.
+   É utilizado para **deletar um usuário**. Basta que a autenticação por `username` e `password` seja completa da mesma forma dos passos anteriores, com HTTP Basic Auth, e caso esteja ativo no banco de dados, o usuário sofrerá uma deleção lógica.
 
 Endpoints de gestão de invoices:
 -----------------------------------------
-+ Autenticação:
++ **Autenticação**:
 
    **Para todos os endpoints dessa seção, os requests devem ser enviados com o header `Authorization`: `Bearer <token>`**. Se a *token* for validada, o servidor processará a request.
    
-+ POST:
++ **POST**:
 
    `'/nf/api/v1.0/invoices'`, `POST`
 
-   Usada para adicionar novos invoices à aplicação. No Body da request deve ser enviado um JSON com o seguinte formato:
+   Usada para **adicionar novos invoices** à aplicação. No Body da request deve ser enviado um JSON com o seguinte formato:
    ```python
    {
 	"ReferenceMonth": 11,
@@ -89,26 +89,26 @@ Endpoints de gestão de invoices:
         }
      }
    ```
-+ GET ID:
++ **GET ID**:
 
    `'/nf/api/v1.0/invoices/<id>'`, `GET`
 
-   Usada para acessar uma invoice específica pelo id. Caso não seja encontrada, o servidor irá responder com `Error 404: Not Found`.
-+ UPDATE:
+   Usada para **acessar uma invoice específica pelo id**. Caso não seja encontrada, o servidor irá responder com `Error 404: Not Found`.
++ **UPDATE**:
 
    `'/nf/api/v1.0/invoices/<id>'`, `PUT`
 
-   Usada para atualizar as informações de alguma invoice já guardado. O id corresponde ao id da invoice que será atualizada. Os campos passíveis de atualização são apenas os que podem ser controlados pelo usuário. No Body da request deve ser enviado um JSON contendo apenas os campos que devem ser atualizados, com seus respectivos novos valores.
-+ DELETE
+   Usada para **atualizar as informações de alguma invoice já guardada**. O id corresponde ao id da invoice que será atualizada. Os campos passíveis de atualização são apenas os que podem ser controlados pelo usuário. No Body da request deve ser enviado um JSON contendo apenas os campos que devem ser atualizados, com seus respectivos novos valores.
++ **DELETE**:
 
    `'/nf/api/v1.0/invoices/<id>'`, `DELETE`
 
-   Executa a deleção lógica do invoice correspondente ao id fornecido. O campo IsActive é atualizado para 0, e o campo DeactiveAt é preenchido com a data da deleção. O invoice excluído é retornado pelo servidor. Caso ele não seja encontrado, ocorrerá `ERROR 404: Not Found`.
-+ GET ALL:
+   Executa a **deleção lógica do invoice** correspondente ao id fornecido. O campo IsActive é atualizado para 0, e o campo DeactiveAt é preenchido com a data da deleção. O invoice excluído é retornado pelo servidor. Caso ele não seja encontrado, ocorrerá `ERROR 404: Not Found`.
++ **GET ALL**:
 
    `'/nf/api/v1.0/invoices'`, `GET`
 
-   Retorna todas as invoices. Podem ser fornecidos, na URL, parametros de:
+   **Retorna todas as invoices**. Podem ser fornecidos, na URL, parametros de:
    + Paginação:
    
       `per-page=5`: 5 invoices serão exibidos em cada página.
