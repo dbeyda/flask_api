@@ -56,6 +56,7 @@ Endpoints de gestão de usuários:
 Endpoints de gestão de invoices:
 -----------------------------------------
 + Autenticação:
+
    **Para todos os endpoints dessa seção, os requests devem ser enviados com o header `Authorization`: `Bearer <token>`**. Se a *token* for validada, o servidor processará a request.
    
 + POST:
